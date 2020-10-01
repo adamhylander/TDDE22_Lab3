@@ -2,98 +2,157 @@ package lab3;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Scanner;
 
 /**
- * Class representing one point in the two dimensional plane.
- * @author Magnus Nielsen
+ * Brute force solution. To run: java brute.java < input.txt
  *
- * Largely based on existing C++-laborations by Tommy Olsson and Filip Strömbäck.
+ * @author Magnus Nielsen Largely based on existing C++-laborations by Tommy
+ *         Olsson and Filip Strömbäck.
  */
+public class Fast {
+	/**
+	 * Clear the window and paint all the Points in the plane.
+	 *
+	 * @param frame  - The window / frame.
+	 * @param points - The points to render.
+	 */
+	private static void render(JFrame frame, ArrayList<Point> points) {
+		frame.removeAll();
+		frame.setVisible(true);
+		for (Point p : points) {
+			p.paintComponent(frame.getGraphics(), frame.getWidth(), frame.getHeight());
+		}
+	}
 
-public class Point extends JComponent {
-    private static final int MAXCOORD = 32767;
-    private int x,y;
+	/**
+	 * Draw a line between two points in the window / frame.
+	 *
+	 * @param frame - The frame / window in which you wish to draw the line.
+	 * @param p1    - The first Point.
+	 * @param p2    - The second Point.
+	 */
+	private static void renderLine(JFrame frame, Point p1, Point p2) {
+		p1.lineTo(p2, frame.getGraphics(), frame.getWidth(), frame.getHeight());
+	}
 
+	/**
+	 * Read all the points from the buffer in the input scanner.
+	 *
+	 * @param input - Scanner containing a buffer from which to read the points.
+	 * @return ArrayList<Point> containing all points defined in the file / buffer.
+	 */
+	private static ArrayList<Point> getPoints(Scanner input) {
+		int count = input.nextInt();
+		ArrayList<Point> res = new ArrayList<>();
+		for (int i = 0; i < count; ++i) {
+			res.add(new Point(input.nextInt(), input.nextInt()));
+		}
+		return res;
+	}
 
-    public Point(int xPos, int yPos) {
-        x = xPos;
-        y = yPos;
-    }
+	public static void main(String[] args) throws InterruptedException {
+		  JFrame frame;
+	        Scanner input = null;
+	        File f;
+	        ArrayList<Point> points;
 
-    /**
-     * Calculate the slope between this point and p.
-     *
-     * @param p - The additional point to use in the calculation.
-     * @return double - If the points are the same, negative infinity is returned,
-     * If the line between the points is horizontal positive zero is returned,
-     * If the line between the points is vertical positive infinity is returned.
-     */
+	        if (args.length != 1) {
+	            System.out.println("Usage: java Brute <input.txt>\n" +
+	                    "Replace <input.txt> with your input file of preference, and possibly the path.\n" +
+	                    "Ex: java Brute data/input1000.txt");
+	            System.exit(0);
+	        }
 
-    public double slopeTo(Point p) {
-        if (x == p.x && y == p.y)
-            return Double.NEGATIVE_INFINITY;
-        else if (y == p.y) // horizontal line segment
-            return 0.0;
-        else if (x == p.x) // vertical line segment
-            return Double.POSITIVE_INFINITY;
-        else
-            return ((double) p.y - (double) y) / ((double) p.x - (double) x);
-    }
+	        // Opening the file containing the points.
+	        f = new File(args[0]);
+	        try {
+	            input = new Scanner(f);
+	        } catch (FileNotFoundException e) {
+	            System.err.println("Failed to open file. Try giving a correct file / file path.");
+	        }
 
-    /**
-     * Paint the point at its location in the plane.
-     *
-     * @param g - Graphics object.
-     * @param frameWidth - int containing the width of the frame in pixels.
-     * @param frameHeight - int containing the height of the frame in pixels.
-     */
-    public void paintComponent(Graphics g, int frameWidth, int frameHeight) {
-        int xScaled = x / ((MAXCOORD + 1) / frameWidth);
-        int yScaled = (MAXCOORD - y) / ((MAXCOORD + 1) / frameHeight);
-        g.fillOval(xScaled, yScaled,2, 2);
-    }
+	        // Creating frame for painting.
+	        frame = new JFrame();
+	        frame.setMinimumSize(new Dimension(512, 512));
+	        frame.setPreferredSize(new Dimension(512,512));
 
-    /**
-     * Draws a line from this Point to Point p.
-     *
-     * @param p - The Point to connect to this one with a line.
-     * @param g - Graphics object.
-     */
-    public void lineTo(Point p, Graphics g, int frameWidth, int frameHeight) {
-        int x1Scaled = x / ((MAXCOORD + 1) / frameWidth);
-        int y1Scaled = (MAXCOORD - y) / ((MAXCOORD + 1) / frameHeight);
-        int x2Scaled = p.x / ((MAXCOORD + 1) / frameWidth);
-        int y2Scaled = (MAXCOORD - p.y) / ((MAXCOORD + 1) / frameHeight);
+	        // Getting the points and painting them in the window.
+	        points = getPoints(input);
+	        render(frame, points);
 
-        g.setColor(Color.blue);
-        g.drawLine(x1Scaled, y1Scaled, x2Scaled, y2Scaled);
-        g.setColor(Color.black);
-    }
+		// Sorting points by natural order (lexicographic order). Makes finding end points of line segments easy.
+	        Collections.sort(points, new NaturalOrderComparator());
 
-    /**
-     * Comparison - Is this Point lexicographically lesser than p?
-     *
-     * @param p - The other Point to compare with.
-     * @return - boolean, true if this Point is the smaller of the two. False otherwise.
-     */
-    public boolean lessThan(Point p) {
-        if (x == p.x) {
-            return y < p.y;
-        }
-        return x < p.x;
-    }
+	        long start = System.currentTimeMillis();
 
-    /**
-     * Comparison - Is this Point lexicographically greater than p?
-     *
-     * @param p - The other Point to compare with.
-     * @return - boolean, true if this Point is the greater of the two. False otherwise.
-     */
-    public boolean greaterThan(Point p) {
-        return p.lessThan(this);
-    }
-    
-    public int getX() {
-    	return x;
-    }
+		// Kolla igenom varje punkt p i listan
+		for (Point p : points) {
+			
+			// Instansiera en ny HashMap för varje punkt p. HashMapen hashar från en slope (double) till en lista
+			// av punkter som delar samma slope från punkten p.
+			HashMap<Double, ArrayList<Point>> slopes = new HashMap<Double, ArrayList<Point>>();
+			
+			// En for loop som iterar över samma lista som låter oss jämföra varje punkt q med p.
+			for (Point q : points) {
+				
+				// Hämta slope värdet för p till q.
+				double slope = p.slopeTo(q);
+				
+				// Om p har samma koordinater som q är det samma punkt och därför meningslöst att gå vidare i for loopen.
+				if (slope == Double.NEGATIVE_INFINITY)
+					continue;
+				
+				// Denna if-sats låter oss spara tid via att undvika onödiga iterationer. Om vi redan jämför p med q
+				// behöver vi inte jämföra q med p i en senare iteration
+				if (p.getX() > q.getX())
+					continue;
+				
+				// Om slopes finns i mappen vill vi hämta korresponderande lista och stoppa in q.
+				if (slopes.containsKey(slope)) {
+					ArrayList<Point> list = slopes.get(slope);
+					list.add(q);
+					slopes.put(slope, list); 
+				}
+				
+				// Annars vill vi skapa en ny lista och placera q där istället.
+				else {
+					ArrayList<Point> list = new ArrayList<Point>();
+					list.add(q);
+					slopes.put(slope, list);
+				}
+			}
+			
+			// Efter vi jämfört alla punkter med p, så vill vi gå igenom alla slopes i hashmapen och kolla om det finns
+			// listor med 3 eller fler punkter i sig. Om det stämmer ritar vi ett streck från punkten p som är vårt minsta värde 
+			// till det sista värdet i listan som då också är det största värdet.
+			for (double s : slopes.keySet()) {
+				ArrayList<Point> list = slopes.get(s);
+				if(list.size() >= 3) {
+					renderLine(frame, p, list.get(list.size()-1));
+				}
+			}
+		}
+		long end = System.currentTimeMillis();
+		System.out.println("Computing all the line segments took: " + (end - start) + " milliseconds.");
+		System.out.println("Computing all the line segments took: " + (end - start)/1000 + " seconds.");
+	}
+
+	/**
+	 * Comparator class. Used to tell Collections.sort how to compare objects of a
+	 * non standard class.
+	 */
+	private static class NaturalOrderComparator implements Comparator<Point> {
+		public int compare(Point a, Point b) {
+			if (a.greaterThan(b))
+				return 1;
+			return -1;
+		}
+	}
 }
