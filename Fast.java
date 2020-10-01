@@ -7,16 +7,15 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Scanner;
 
 /**
  * Brute force solution. To run: java brute.java < input.txt
  *
  * @author Magnus Nielsen Largely based on existing C++-laborations by Tommy
- *         Olsson and Filip Strömbäck.
+ *         Olsson and Filip StrÃ¶mbÃ¤ck.
  */
-public class Fast {
+public class Brute {
 	/**
 	 * Clear the window and paint all the Points in the plane.
 	 *
@@ -26,6 +25,7 @@ public class Fast {
 	private static void render(JFrame frame, ArrayList<Point> points) {
 		frame.removeAll();
 		frame.setVisible(true);
+
 		for (Point p : points) {
 			p.paintComponent(frame.getGraphics(), frame.getWidth(), frame.getHeight());
 		}
@@ -54,6 +54,7 @@ public class Fast {
 		for (int i = 0; i < count; ++i) {
 			res.add(new Point(input.nextInt(), input.nextInt()));
 		}
+
 		return res;
 	}
 
@@ -61,14 +62,13 @@ public class Fast {
 		JFrame frame;
 		Scanner input = null;
 		ArrayList<Point> points;
-		File f = new File("/Users/Adam/Desktop/data/input12800.txt");
+		File f = new File("/Applications/data/input12800.txt");
 		try {
 			input = new Scanner(f);
 		} catch (FileNotFoundException e) {
 			System.err.println("Failed to open file. Try giving a correct file / file path.");
 		}
-		
-		System.out.println("FAST " + f);
+
 		// Creating frame for painting.
 		frame = new JFrame();
 		frame.setMinimumSize(new Dimension(512, 512));
@@ -78,44 +78,32 @@ public class Fast {
 		points = getPoints(input);
 		render(frame, points);
 
-		NaturalOrderComparator naturalOrderComparator = new NaturalOrderComparator();
-
-		// Sorting points by natural order (lexicographic order). Makes finding end
-		// points of line segments easy.
+		// Sorting points by natural order. Makes finding end points of line segments
+		// easy.
 		Collections.sort(points, new NaturalOrderComparator());
 
 		long start = System.currentTimeMillis();
 
-		for (Point p : points) {
-			HashMap<Double, ArrayList<Point>> slopes = new HashMap<Double, ArrayList<Point>>(); // De riktningar vi har ???
-			for (Point q : points) {
-				double slope = p.slopeTo(q);
-				if (slope == Double.NEGATIVE_INFINITY)
-					continue;
-				if (p.getX() > q.getX())
-					continue;
-				if (slopes.containsKey(slope)) {
-					ArrayList<Point> list = slopes.get(slope);
-					list.add(q);
-					slopes.put(slope, list); 
-				}			
-				else {
-					ArrayList<Point> list = new ArrayList<Point>();
-					list.add(p);
-					list.add(q);
-					slopes.put(slope, list);
-				}
-			}
-			for (double s : slopes.keySet()) {
-				ArrayList<Point> list = slopes.get(s);
-				if(list.size() > 3) {
-					renderLine(frame, p, list.get(list.size()-1));
+		// Iterate over and paint all line segments of 4 or more points.
+		int count = points.size();
+
+		for (int i = 0; i < count - 3; ++i) {
+			for (int j = i + 1; j < count - 2; ++j) {
+				for (int k = j + 1; k < count - 1; ++k) {
+//					System.out.println("Comparing " + i + " to " + j + " and " + i + " to " + k);
+					if (points.get(i).slopeTo(points.get(j)) == points.get(i).slopeTo(points.get(k))) {
+						for (int m = k + 1; m < count; ++m) {
+							if (points.get(i).slopeTo(points.get(j)) == points.get(i).slopeTo(points.get(m))) {
+								renderLine(frame, points.get(i), points.get(m));
+							}
+						}
+					}
 				}
 			}
 		}
+
 		long end = System.currentTimeMillis();
 		System.out.println("Computing all the line segments took: " + (end - start) + " milliseconds.");
-		System.out.println("Computing all the line segments took: " + (end - start)/1000 + " seconds.");
 	}
 
 	/**
@@ -124,8 +112,9 @@ public class Fast {
 	 */
 	private static class NaturalOrderComparator implements Comparator<Point> {
 		public int compare(Point a, Point b) {
-			if (a.greaterThan(b))
+			if (a.greaterThan(b)) {
 				return 1;
+			}
 			return -1;
 		}
 	}
