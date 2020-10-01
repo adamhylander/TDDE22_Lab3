@@ -7,7 +7,7 @@ import java.awt.*;
  * Class representing one point in the two dimensional plane.
  * @author Magnus Nielsen
  *
- * Largely based on existing C++-laborations by Tommy Olsson and Filip Strömbäck.
+ * Largely based on existing C++-laborations by Tommy Olsson and Filip StrÃ¶mbÃ¤ck.
  */
 
 public class Point extends JComponent {
